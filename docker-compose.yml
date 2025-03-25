@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV}
+
+  stt-service:
+    build: ./stt-service
+    ports:
+      - "${STT_SERVICE_PORT}:${STT_SERVICE_PORT}"
+    volumes:
+      - ./stt-service:/app
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - STT_SERVICE_PORT=${STT_SERVICE_PORT}
+
+  emotion-predictor:
+    build: ./emotion-predictor
+    ports:
+      - "${EMOTION_PREDICTOR_PORT}:${EMOTION_PREDICTOR_PORT}"
+    volumes:
+      - ./emotion-predictor:/app
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - EMOTION_PREDICTOR_PORT=${EMOTION_PREDICTOR_PORT}
+
+  tts-service:
+    build: ./tts-service
+    ports:
+      - "${TTS_SERVICE_PORT}:${TTS_SERVICE_PORT}"
+    volumes:
+      - ./tts-service:/app
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - TTS_SERVICE_PORT=${TTS_SERVICE_PORT}
+
+  chatbot-service:
+    build: ./chatbot-service
+    ports:
+      - "${CHATBOT_SERVICE_PORT}:${CHATBOT_SERVICE_PORT}"
+    volumes:
+      - ./chatbot-service:/app
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - CHATBOT_SERVICE_PORT=${CHATBOT_SERVICE_PORT}
+      - CHESHIRE_CAT_URL=${CHESHIRE_CAT_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
+    depends_on:
+      - ollama
+      - cheshire-cat-core
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - ${OLLAMA_PORT}:${OLLAMA_PORT}
+    volumes:
+      - ${OLLAMA_MODELS_PATH}:/root/.ollama
+    restart: unless-stopped
+
+  cheshire-cat-core:
+    image: ghcr.io/cheshire-cat-ai/core:latest
+    container_name: cheshire_cat_core
+    ports:
+      - "${CHESHIRE_CAT_PORT_EXTERNAL}:${CHESHIRE_CAT_PORT_INTERNAL}"
+      - "5678:5678"
+    volumes:
+      - ${CHESHIRE_STATIC_PATH}:/app/cat/static
+      - ${CHESHIRE_PLUGINS_PATH}:/app/cat/plugins
+      - ${CHESHIRE_DATA_PATH}:/app/cat/data
+    environment:
+      - MODEL_API=${MODEL_API}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - WORKER_CONNECTIONS=${WORKER_CONNECTIONS}
+    depends_on:
+      - frontend
+      - stt-service
+      - emotion-predictor
+      - chatbot-service
+      - tts-service
+      - cheshire-cat-core
+
+networks:
+  default:
+    driver: bridge
