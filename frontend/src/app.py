@@ -7,6 +7,7 @@ import httpx
 import os
 import uvicorn
 from pydantic import BaseModel
+from datetime import datetime
 
 # Configurazione
 PORT = int(os.getenv("FRONTEND_PORT", 3000))
@@ -28,7 +29,10 @@ class ChatRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "now": datetime.now()
+    })
 
 
 @app.post("/send_message")
