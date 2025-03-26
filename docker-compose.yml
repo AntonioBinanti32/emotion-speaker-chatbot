@@ -21,7 +21,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=${NODE_ENV}
-      - FRONTEND_PORT}=${FRONTEND_PORT}
+      - FRONTEND_PORT=${FRONTEND_PORT}
     #restart: always
 
   stt-service:

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Emotivo</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1><i class="fas fa-robot"></i> Chatbot Emotivo</h1>
+            <div class="emotion-display">
+                <i class="fas fa-heart-pulse"></i>
+                <span>Emozione: </span>
+                <span id="emotion-label" class="neutrale">neutrale</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <div class="message-content">
+                    Ciao! Sono il tuo assistente virtuale emotivo. Come posso aiutarti oggi?
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="message-input" placeholder="Scrivi un messaggio...">
+            <button id="send-button"><i class="fas fa-paper-plane"></i> Invia</button>
+            <button id="voice-button"><i class="fas fa-microphone"></i></button>
+        </div>
+
+        <audio id="response-audio" controls style="display: none;"></audio>
+    </div>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    <script>
+        // Aggiorniamo anche la funzione per applicare la classe dell'emozione
+        function getEmotionText(emotion) {
+            const emotionMap = {
+                'happy': 'felice',
+                'sad': 'triste',
+                'angry': 'arrabbiato',
+                'fearful': 'spaventato',
+                'surprised': 'sorpreso',
+                'neutral': 'neutrale'
+            };
+
+            // Aggiorna classe per lo stile
+            const emotionLabel = document.getElementById('emotion-label');
+            const emotionText = emotionMap[emotion] || emotion;
+
+            // Rimuovi tutte le classi emotive
+            emotionLabel.className = '';
+            // Aggiungi la classe corretta
+            emotionLabel.classList.add(emotionText);
+
+            return emotionText;
+        }
+    </script>
+</body>
+</html>
