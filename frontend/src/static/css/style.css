@@ -381,53 +381,41 @@ button:active {
 }
 
 /* Aggiornamento stili per stati emotivi con emoji */
-#emotion-label.felice::before { content: '😊'; }
-#emotion-label.triste::before { content: '😢'; }
-#emotion-label.arrabbiato::before { content: '😠'; }
-#emotion-label.spaventato::before { content: '😨'; }
-#emotion-label.sorpreso::before { content: '😲'; }
-#emotion-label.neutrale::before { content: '😐'; }
+#emotion-label.rabbia::before { content: '😠'; }
+#emotion-label.disgusto::before { content: '🤢'; }
+#emotion-label.paura::before { content: '😨'; }
+#emotion-label.felicità::before { content: '😊'; }
+#emotion-label.neutro::before { content: '😐'; }
+#emotion-label.tristezza::before { content: '😢'; }
 
-/* Animazione leggera per l'emoji */
-@keyframes emoji-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-#emotion-label::before {
-    display: inline-block;
-    animation: emoji-pulse 2s infinite;
-}
-
-/* Aggiornamento colori per migliorare contrasto con emoji */
-#emotion-label.felice {
-    background-color: rgba(76, 175, 80, 0.85);
-    color: white;
-}
-
-#emotion-label.triste {
-    background-color: rgba(33, 150, 243, 0.85);
-    color: white;
-}
-
-#emotion-label.arrabbiato {
+/* Aggiornamento colori per le emozioni */
+#emotion-label.rabbia {
     background-color: rgba(244, 67, 54, 0.85);
     color: white;
 }
 
-#emotion-label.spaventato {
+#emotion-label.disgusto {
+    background-color: rgba(76, 175, 80, 0.65);
+    color: white;
+}
+
+#emotion-label.paura {
     background-color: rgba(255, 152, 0, 0.85);
     color: white;
 }
 
-#emotion-label.sorpreso {
-    background-color: rgba(156, 39, 176, 0.85);
+#emotion-label.felicità {
+    background-color: rgba(76, 175, 80, 0.85);
     color: white;
 }
 
-#emotion-label.neutrale {
+#emotion-label.neutro {
     background-color: rgba(158, 158, 158, 0.85);
+    color: white;
+}
+
+#emotion-label.tristezza {
+    background-color: rgba(33, 150, 243, 0.85);
     color: white;
 }
 

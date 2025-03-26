@@ -11,6 +11,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let isRecording = false;
     let isWaitingForResponse = false;
 
+    // Effetto spotlight che segue il cursore
+    const spotlight = document.createElement('div');
+    spotlight.classList.add('cursor-spotlight');
+    document.body.appendChild(spotlight);
+
+    document.addEventListener('mousemove', function(e) {
+        spotlight.style.left = e.clientX + 'px';
+        spotlight.style.top = e.clientY + 'px';
+    });
+
+    // Effetto animato per l'inizializzazione della chat
+    const firstMessage = chatMessages.querySelector('.message');
+    if (firstMessage) {
+        firstMessage.style.opacity = '0';
+        firstMessage.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            firstMessage.style.transition = 'all 0.5s ease';
+            firstMessage.style.opacity = '1';
+            firstMessage.style.transform = 'translateY(0)';
+        }, 300);
+    }
+
     // Invio messaggio con tasto invio
     messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !isWaitingForResponse) {
@@ -81,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showLoadingMessage();
 
-            const response = await fetch('/transcribe_audio', {
+            const response = await fetch('/transcribe_and_analyze_audio', {
                 method: 'POST',
                 body: formData
             });
@@ -91,17 +114,34 @@ document.addEventListener('DOMContentLoaded', function() {
             // Rimuovi il messaggio di caricamento
             removeLoadingMessage();
 
+            // Aggiorna l'etichetta dell'emozione con quella rilevata dall'audio
+            emotionLabel.textContent = getEmotionText(data.emotion);
+
+            // Se c'è un testo trascritto, mostralo come messaggio dell'utente
             if (data.text) {
-                messageInput.value = data.text;
-                sendMessage();
+                addMessage(data.text, 'user', true);
+
+                // Se c'è una risposta dal chatbot, mostrala
+                if (data.response) {
+                    addMessage(data.response, 'bot', true);
+
+                    // Riproduci l'audio della risposta se disponibile
+                    if (data.audio_url) {
+                        responseAudio.src = data.audio_url;
+                        responseAudio.style.display = 'block';
+                        responseAudio.play();
+                    } else {
+                        responseAudio.style.display = 'none';
+                    }
+                }
             } else {
                 addMessage('Non sono riuscito a capire. Puoi riprovare?', 'bot');
-                isWaitingForResponse = false;
             }
         } catch (error) {
             console.error('Errore nell\'invio dell\'audio:', error);
             removeLoadingMessage();
             showError('Si è verificato un errore nell\'elaborazione dell\'audio');
+        } finally {
             isWaitingForResponse = false;
         }
     }
@@ -111,22 +151,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingDiv.className = 'message bot loading-message';
 
         const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.className = 'loading-indicator';
+        contentDiv.className = 'message-content typing-indicator';
 
         for (let i = 0; i < 3; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'dot';
-            loadingIndicator.appendChild(dot);
+            const dot = document.createElement('span');
+            contentDiv.appendChild(dot);
         }
 
-        contentDiv.appendChild(loadingIndicator);
         loadingDiv.appendChild(contentDiv);
         chatMessages.appendChild(loadingDiv);
-
-        // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -227,94 +260,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getEmotionText(emotion) {
+        // Mappa le emozioni inglesi in italiano con emoji
         const emotionMap = {
-            'happy': 'felice',
-            'sad': 'triste',
-            'angry': 'arrabbiato',
-            'fearful': 'spaventato',
-            'surprised': 'sorpreso',
-            'neutral': 'neutrale'
+            'angry': {text: 'rabbia', emoji: '😠'},
+            'disgust': {text: 'disgusto', emoji: '🤢'},
+            'fearful': {text: 'paura', emoji: '😨'},
+            'happy': {text: 'felicità', emoji: '😊'},
+            'neutral': {text: 'neutro', emoji: '😐'},
+            'sad': {text: 'tristezza', emoji: '😢'}
         };
 
-        const emotionText = emotionMap[emotion] || emotion;
+        // Gestione emozioni numeriche
+        if (typeof emotion === 'number' || !isNaN(parseInt(emotion))) {
+            const numEmotion = parseInt(emotion);
+            switch(numEmotion) {
+                case 0: return emotionMap['angry'].text;
+                case 1: return emotionMap['disgust'].text;
+                case 2: return emotionMap['fearful'].text;
+                case 3: return emotionMap['happy'].text;
+                case 4: return emotionMap['neutral'].text;
+                case 5: return emotionMap['sad'].text;
+                default: return emotionMap['neutral'].text;
+            }
+        }
+
+        const emotionInfo = emotionMap[emotion.toLowerCase()] || {text: 'neutro', emoji: '😐'};
 
         // Aggiorna la classe per lo stile
-        const emotionLabel = document.getElementById('emotion-label');
         emotionLabel.className = '';
-        emotionLabel.classList.add(emotionText);
+        emotionLabel.classList.add(emotionInfo.text);
 
-        return emotionText;
+        // Ritorna il testo con emoji
+        //return `${emotionInfo.emoji} ${emotionInfo.text}`;
+        return `${emotionInfo.text}`;
     }
 
     setTimeout(() => {
         messageInput.focus();
     }, 500);
-
-    // Effetto spotlight che segue il cursore
-document.addEventListener('DOMContentLoaded', function() {
-    const spotlight = document.createElement('div');
-    spotlight.classList.add('cursor-spotlight');
-    document.body.appendChild(spotlight);
-
-    document.addEventListener('mousemove', function(e) {
-        spotlight.style.left = e.clientX + 'px';
-        spotlight.style.top = e.clientY + 'px';
-    });
-
-    // Effetto animato per l'inizializzazione della chat
-    const chatMessages = document.getElementById('chat-messages');
-    const firstMessage = chatMessages.querySelector('.message');
-
-    if (firstMessage) {
-        firstMessage.style.opacity = '0';
-        firstMessage.style.transform = 'translateY(20px)';
-
-        setTimeout(() => {
-            firstMessage.style.transition = 'all 0.5s ease';
-            firstMessage.style.opacity = '1';
-            firstMessage.style.transform = 'translateY(0)';
-        }, 300);
-    }
-
-    function showLoadingMessage() {
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message bot loading-message';
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content typing-indicator';
-
-        for (let i = 0; i < 3; i++) {
-            const dot = document.createElement('span');
-            contentDiv.appendChild(dot);
-        }
-
-        loadingDiv.appendChild(contentDiv);
-        chatMessages.appendChild(loadingDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    function getEmotionText(emotion) {
-    const emotionMap = {
-        'happy': {text: 'felice', emoji: '😊'},
-        'sad': {text: 'triste', emoji: '😢'},
-        'angry': {text: 'arrabbiato', emoji: '😠'},
-        'fearful': {text: 'spaventato', emoji: '😨'},
-        'surprised': {text: 'sorpreso', emoji: '😲'},
-        'neutral': {text: 'neutrale', emoji: '😐'}
-    };
-
-    const emotionInfo = emotionMap[emotion] || {text: emotion, emoji: '❓'};
-
-    // Aggiorna la classe per lo stile
-    const emotionLabel = document.getElementById('emotion-label');
-    emotionLabel.className = '';
-    emotionLabel.classList.add(emotionInfo.text);
-
-    // Aggiorna il testo con emoji
-    return `${emotionInfo.emoji} ${emotionInfo.text}`;
-}
-
-    // Sostituisci la funzione esistente
-    window.showLoadingMessage = showLoadingMessage;
-});
 });

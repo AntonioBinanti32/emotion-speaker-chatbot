@@ -22,7 +22,7 @@ async def get_chat_response(text, emotion=None):
 
     logger.info(f"Sending to Cheshire Cat: {json.dumps(payload)}")
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=180.0) as client:
         try:
             response = await client.post(
                 f"{cheshire_cat_url}/message",
