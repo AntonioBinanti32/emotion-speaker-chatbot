@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  init-ollama:
+    image: curlimages/curl:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "echo 'Scaricamento del modello llama3.2:3b...' &&
+             curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"llama3.2:3b\"}' &&
+             echo 'Download completato.'"
+      
+
   frontend:
     build: ./frontend
     ports:
@@ -10,6 +21,8 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=${NODE_ENV}
+      - FRONTEND_PORT}=${FRONTEND_PORT}
+    #restart: always
 
   stt-service:
     build: ./stt-service
@@ -30,6 +43,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
       - EMOTION_PREDICTOR_PORT=${EMOTION_PREDICTOR_PORT}
+    #restart: always
 
   tts-service:
     build: ./tts-service
@@ -40,6 +54,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
       - TTS_SERVICE_PORT=${TTS_SERVICE_PORT}
+    #restart: always
 
   chatbot-service:
     build: ./chatbot-service
@@ -55,6 +70,7 @@ services:
     depends_on:
       - ollama
       - cheshire-cat-core
+    restart: always
 
   ollama:
     image: ollama/ollama:latest
@@ -63,7 +79,12 @@ services:
       - ${OLLAMA_PORT}:${OLLAMA_PORT}
     volumes:
       - ${OLLAMA_MODELS_PATH}:/root/.ollama
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:11434/api/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   cheshire-cat-core:
     image: ghcr.io/cheshire-cat-ai/core:latest
@@ -78,15 +99,30 @@ services:
     environment:
       - MODEL_API=${MODEL_API}
       - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - CORE_LLM_SERVICE=${CORE_LLM_SERVICE}
+      - OLLAMA_BASE_URL=${OLLAMA_URL}
+      - AUTOMATIC_CORE_LLM_LOADING=${AUTOMATIC_CORE_LLM_LOADING}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: always
 
   api-gateway:
     build: ./api-gateway
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     volumes:
+      #- ./api-gateway/nginx.conf.template:/etc/nginx/nginx.conf.template
       - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf
     environment:
       - WORKER_CONNECTIONS=${WORKER_CONNECTIONS}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
+      - FRONTEND_PORT=${FRONTEND_PORT}
+      - STT_SERVICE_PORT=${STT_SERVICE_PORT}
+      - EMOTION_PREDICTOR_PORT=${EMOTION_PREDICTOR_PORT}
+      - CHATBOT_SERVICE_PORT=${CHATBOT_SERVICE_PORT}
+      - TTS_SERVICE_PORT=${TTS_SERVICE_PORT}
+      - CHESHIRE_CAT_PORT_INTERNAL=${CHESHIRE_CAT_PORT_INTERNAL}
     depends_on:
       - frontend
       - stt-service
@@ -94,6 +130,7 @@ services:
       - chatbot-service
       - tts-service
       - cheshire-cat-core
+    restart: always
 
 networks:
   default:

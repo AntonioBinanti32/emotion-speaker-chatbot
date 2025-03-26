@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 5003
+EXPOSE ${CHATBOT_SERVICE_PORT}
 
 CMD ["python", "src/app.py"]

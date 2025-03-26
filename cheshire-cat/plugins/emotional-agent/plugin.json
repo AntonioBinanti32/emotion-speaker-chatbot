@@ -1,0 +1,7 @@
+{
+    "name": "Emotional Agent plugin",
+    "version": "0.0.1",
+    "description": "Agente in grado di adattare le risposte in base alle emozioni dell'utente",
+    "author_name": "Antonio Binanti",
+    "tags": "AI, Emotional Agent"
+}

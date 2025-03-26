@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 5004
+EXPOSE ${TTS_SERVICE_PORT}
 
 CMD ["python", "src/app.py"]

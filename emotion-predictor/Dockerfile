@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 5002
+EXPOSE ${EMOTION_PREDICTOR_PORT}
 
 CMD ["python", "src/app.py"]
