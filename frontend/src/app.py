@@ -75,7 +75,7 @@ async def send_message(message: str = Form(...)):
                 "response": response_data["response"],
                 "emotion": emotion
             }
-            """
+
             # Opzionale: richiesta per convertire la risposta in voce
             tts_response = await client.post(
                 f"{API_GATEWAY_URL}/api/tts/synthesize",
@@ -90,7 +90,7 @@ async def send_message(message: str = Form(...)):
                 "response": response_data["response"],
                 "emotion": emotion,
                 "audio_url": audio_url
-            }"""
+            }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,16 +103,16 @@ async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
             # Leggi il contenuto del file
             content = await audio_data.read()
 
-            """
             # Invia l'audio al servizio STT per trascrizione
-            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio: {message} ")
+            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
 
             files_stt = {"audio_file": ("audio.wav", content, "audio/wav")}
             stt_response = await client.post(
                 f"{API_GATEWAY_URL}/api/stt/transcribe",
                 files=files_stt
             )
-            """
+
+            logger.info(f"Risposta ricevuta da stt-service: {stt_response.json()}")
 
             # Invia l'audio al servizio emotion-predictor per l'analisi
             logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/emotion/predict per rilevare l'emozione dell'audio")
@@ -125,11 +125,13 @@ async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
 
             logger.info(f"Risposta ricevuta da emotion-predictor: {emotion_response.json()}")
 
-            #stt_data = stt_response.json()
+            stt_data = stt_response.json()
             emotion_data = emotion_response.json()
 
             emotion = emotion_data.get("emotion", "neutral")
-            #transcribed_text = stt_data.get("text", "")
+            transcribed_text = stt_data.get("text", "")
+
+            logger.info(f"Trascrizione completata. Testo: {transcribed_text[:50]}... Emozione: {emotion}")
 
             # Se abbiamo testo trascritto, inviamolo al chatbot
             chat_response = None
@@ -152,7 +154,7 @@ async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
                     audio_url = f"{API_GATEWAY_URL}/api/tts/audio/{tts_response.json().get('audio_id', '')}"
             """
             return {
-                #"text": transcribed_text,
+                "text": transcribed_text,
                 "emotion": emotion,
                 "confidence": emotion_data.get("confidence", 1.0),
                 "response": chat_response["response"] if chat_response else None,

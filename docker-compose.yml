@@ -10,7 +10,6 @@ services:
       sh -c "echo 'Scaricamento del modello llama3.2:3b...' &&
              curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"llama3.2:3b\"}' &&
              echo 'Download completato.'"
-      
 
   frontend:
     build: ./frontend
@@ -34,6 +33,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
       - STT_SERVICE_PORT=${STT_SERVICE_PORT}
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE}
+      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE}
 
   emotion-predictor:
     build: ./emotion-predictor
