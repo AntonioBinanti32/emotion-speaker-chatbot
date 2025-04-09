@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def get_chat_response(text, emotion=None):
+async def get_chat_response(text, emotion=None, environment=None):
     """Invia un messaggio a Cheshire Cat e restituisce la risposta."""
     cheshire_cat_url = os.getenv("CHESHIRE_CAT_URL", "http://cheshire-cat-core:80")
 
@@ -18,7 +18,7 @@ async def get_chat_response(text, emotion=None):
     }
 
     if emotion:
-        payload["metadata"] = {"emotion": emotion}
+        payload["metadata"] = {"emotion": emotion, "environment": environment}
 
     logger.info(f"Sending to Cheshire Cat: {json.dumps(payload)}")
 

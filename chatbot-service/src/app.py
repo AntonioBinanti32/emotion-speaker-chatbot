@@ -22,6 +22,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     text: str
     emotion: str = None
+    environment: str = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -34,7 +35,7 @@ async def health_check():
 async def chat(request: ChatRequest):
     try:
         print(f"Sending to Cheshire Cat: {request}")
-        response = await service.get_chat_response(request.text, request.emotion)
+        response = await service.get_chat_response(request.text, request.emotion, request.environment)
         return ChatResponse(response=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

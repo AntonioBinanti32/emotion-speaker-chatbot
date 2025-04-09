@@ -112,6 +112,17 @@ services:
         condition: service_healthy
     restart: always
 
+  environment-classifier:
+    build: ./environment-classifier
+    ports:
+      - "${ENV_CLASSIFIER_PORT}:${ENV_CLASSIFIER_PORT}"
+    volumes:
+      - ./environment-classifier:/app
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - ENV_CLASSIFIER_PORT=${ENV_CLASSIFIER_PORT}
+    restart: always
+
   api-gateway:
     build: ./api-gateway
     ports:

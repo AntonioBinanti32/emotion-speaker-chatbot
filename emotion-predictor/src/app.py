@@ -14,7 +14,7 @@ import logging
 
 # Configurazione
 PORT = int(os.getenv("EMOTION_PREDICTOR_PORT", 5002))
-MODEL_PATH = os.getenv("MODEL_PATH", "./model/emotion_classifier.h5")
+MODEL_PATH = os.getenv("MODEL_PATH", "./model/emotion_classifier.keras")
 SCALER_PATH = os.getenv("SCALER_PATH", "./model/scaler.pkl")
 
 # Configurazione logging
@@ -133,10 +133,12 @@ async def predict_emotion(file: UploadFile = File(...)):
 
         # Reshape
         original_shape = features.shape
-        features_reshaped = features.reshape(-1, features.shape[-1])
+        # Reshape per lo scaling (appiattisci il mel spettrogramma)
+        features_flattened = features.reshape(1, -1)  # Una singola riga con tutte le features appiattite
+        logger.info(f"Features flattened shape: {features_flattened.shape}")  # Dovrebbe essere (1, 12032)
 
-        # Applicazione dello scaler
-        features_scaled = scaler.transform(features_reshaped)
+        # Applica lo scaler
+        features_scaled = scaler.transform(features_flattened)
 
         # Reshape alla forma originale
         features_scaled = features_scaled.reshape(original_shape)

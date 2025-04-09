@@ -105,6 +105,87 @@ async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
 
             # Invia l'audio al servizio STT per trascrizione
             logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
+            files_stt = {"audio_file": ("audio.wav", content, "audio/wav")}
+            stt_response = await client.post(
+                f"{API_GATEWAY_URL}/api/stt/transcribe",
+                files=files_stt
+            )
+            logger.info(f"Risposta ricevuta da stt-service: {stt_response.json()}")
+
+            # Invia l'audio al servizio emotion-predictor per l'analisi
+            logger.info(
+                f"Inviando richiesta a {API_GATEWAY_URL}/api/emotion/predict per rilevare l'emozione dell'audio")
+            files_emotion = {"file": ("audio.wav", content, "audio/wav")}
+            emotion_response = await client.post(
+                f"{API_GATEWAY_URL}/api/emotion/predict",
+                files=files_emotion
+            )
+            logger.info(f"Risposta ricevuta da emotion-predictor: {emotion_response.json()}")
+
+            # Invia l'audio al classificatore ambientale
+            logger.info(
+                f"Inviando richiesta a {API_GATEWAY_URL}/api/environment/classify per rilevare l'ambiente dell'audio")
+            files_env = {"file": ("audio.wav", content, "audio/wav")}
+            env_response = await client.post(
+                f"{API_GATEWAY_URL}/api/environment/classify",
+                files=files_env
+            )
+            logger.info(f"Risposta ricevuta da environment-classifier: {env_response.json()}")
+
+            stt_data = stt_response.json()
+            emotion_data = emotion_response.json()
+            environment_data = env_response.json()
+
+            emotion = emotion_data.get("emotion", "neutral")
+            environment = environment_data.get("environment", "Inside, small room")
+            transcribed_text = stt_data.get("text", "")
+
+            logger.info(
+                f"Trascrizione completata. Testo: {transcribed_text[:50]}... Emozione: {emotion}, Ambiente: {environment}")
+
+            # Se abbiamo testo trascritto, inviamolo al chatbot con l'ambiente rilevato
+            chat_response = None
+            audio_url = None
+            """
+            if transcribed_text:
+                chat_response_req = await client.post(
+                    f"{API_GATEWAY_URL}/api/chat",
+                    json={"text": transcribed_text, "emotion": emotion, "environment": environment}
+                )
+                chat_response = chat_response_req.json()
+
+                
+                # Richiesta TTS
+                tts_response = await client.post(
+                    f"{API_GATEWAY_URL}/api/tts/synthesize",
+                    json={"text": chat_response["response"], "emotion": emotion}
+                )
+
+                if tts_response.status_code == 200:
+                    audio_url = f"{API_GATEWAY_URL}/api/tts/audio/{tts_response.json().get('audio_id', '')}"
+            """
+            return {
+                "text": transcribed_text,
+                "emotion": emotion,
+                "environment": environment,
+                "environment_confidence": environment_data.get("confidence", 1.0),
+                "emotion_confidence": emotion_data.get("confidence", 1.0),
+                "response": chat_response["response"] if chat_response else None,
+                "audio_url": audio_url
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/transcribe_and_analyze_audio_0")
+async def transcribe_and_analyze_audio_0(audio_data: UploadFile = File(...)):
+    try:
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            # Leggi il contenuto del file
+            content = await audio_data.read()
+
+            # Invia l'audio al servizio STT per trascrizione
+            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
 
             files_stt = {"audio_file": ("audio.wav", content, "audio/wav")}
             stt_response = await client.post(
