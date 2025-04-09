@@ -1,7 +1,7 @@
 #TODO: Implementare
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-import whisper
+from faster_whisper import WhisperModel
 import tempfile
 import os
 import uvicorn
@@ -11,7 +11,7 @@ from typing import Optional
 
 # Configurazione
 PORT = int(os.getenv("STT_SERVICE_PORT", 5001))
-MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")  # tiny, base, small, medium, large
+MODEL_SIZE = "base" #os.getenv("WHISPER_MODEL_SIZE", "base")  # tiny, base, small, medium, large
 
 # Configurazione logging
 logging.basicConfig(
@@ -20,11 +20,20 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
+"""
 # Inizializzazione del modello Whisper
 try:
     logger.info(f"Caricamento del modello Whisper '{MODEL_SIZE}'...")
     model = whisper.load_model(MODEL_SIZE)
+    logger.info(f"Modello Whisper caricato con successo.")
+except Exception as e:
+    logger.error(f"Errore nel caricamento del modello Whisper: {e}")
+    model = None
+"""
+# Inizializzazione del modello Whisper
+try:
+    logger.info(f"Caricamento del modello Whisper '{MODEL_SIZE}'...")
+    model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
     logger.info(f"Modello Whisper caricato con successo.")
 except Exception as e:
     logger.error(f"Errore nel caricamento del modello Whisper: {e}")
@@ -72,7 +81,10 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
         logger.info(f"File audio temporaneo salvato in: {temp_file_path}")
 
         # Esegui la trascrizione
-        result = model.transcribe(temp_file_path, language=LANGUAGE)
+        #result = model.transcribe(temp_file_path, language=LANGUAGE)
+        segments, info = model.transcribe(temp_file_path, language=LANGUAGE)
+        text = " ".join([segment.text for segment in segments])
+        result = {"text": text, "language": info.language}
 
         # Pulizia del file temporaneo
         os.unlink(temp_file_path)
