@@ -11,6 +11,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let isRecording = false;
     let isWaitingForResponse = false;
 
+function createDebugDiv() {
+    const div = document.createElement('div');
+    div.id = 'debug-log';
+    div.style.cssText = 'position:fixed; bottom:0; left:0; max-height:200px; width:100%; overflow-y:auto; ' +
+                       'background:rgba(0,0,0,0.7); color:white; font-size:12px; z-index:10000; padding:5px;';
+    document.body.appendChild(div);
+    return div;
+}
+
     // Effetto spotlight che segue il cursore
     const spotlight = document.createElement('div');
     spotlight.classList.add('cursor-spotlight');
@@ -61,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function startRecording() {
         try {
+            console.log("Inizio registrazione audio");
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
@@ -96,38 +106,69 @@ document.addEventListener('DOMContentLoaded', function() {
     async function sendAudioToServer() {
         if (isWaitingForResponse) return;
 
-        isWaitingForResponse = true;
         try {
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             const formData = new FormData();
             formData.append('audio_data', audioBlob);
 
-            showLoadingMessage();
+            // Mostra messaggio di caricamento per l'elaborazione dell'audio (lato utente)
+            showLoadingMessage('user');
 
-            const response = await fetch('/transcribe_and_analyze_audio', {
+            // FASE 1: Trascrizione e analisi dell'audio
+            const analysisResponse = await fetch('/transcribe_and_analyze_audio', {
                 method: 'POST',
                 body: formData
             });
 
-            const data = await response.json();
+            const analysisData = await analysisResponse.json();
 
             // Rimuovi il messaggio di caricamento
             removeLoadingMessage();
 
-            // Aggiorna l'etichetta dell'emozione con quella rilevata dall'audio
-            emotionLabel.textContent = getEmotionText(data.emotion);
+            // Se c'è un testo trascritto, mostralo come messaggio dell'utente con etichette
+            if (analysisData.text) {
+                // Aggiorna l'etichetta dell'emozione
+                emotionLabel.textContent = getEmotionText(analysisData.emotion);
 
-            // Se c'è un testo trascritto, mostralo come messaggio dell'utente
-            if (data.text) {
-                addMessage(data.text, 'user', true);
+                // Aggiungi il messaggio con le etichette di emozione e ambiente
+                addMessage(analysisData.text, 'user', true,
+                    {
+                        emotion: analysisData.emotion,
+                        confidence: analysisData.emotion_confidence,
+                        probabilities: analysisData.emotion_probabilities  // Assicurati che questo campo sia presente
+                    },
+                    {
+                        environment: analysisData.environment,
+                        confidence: analysisData.environment_confidence,
+                        detections: analysisData.environment_detections  // Assicurati che questo campo sia presente
+                    });
 
-                // Se c'è una risposta dal chatbot, mostrala
-                if (data.response) {
-                    addMessage(data.response, 'bot', true);
+                // FASE 2: Ottieni risposta chatbot
+                // Mostra messaggio di caricamento per la risposta del bot
+                showLoadingMessage('bot');
+
+                const chatFormData = new FormData();
+                chatFormData.append('message', analysisData.text);
+                chatFormData.append('emotion', analysisData.emotion);
+                chatFormData.append('environment', analysisData.environment);
+
+                const chatResponse = await fetch('/get_chat_response', {
+                    method: 'POST',
+                    body: chatFormData
+                });
+
+                const chatData = await chatResponse.json();
+
+                // Rimuovi il messaggio di caricamento
+                removeLoadingMessage();
+
+                // Mostra la risposta del chatbot
+                if (chatData.response) {
+                    addMessage(chatData.response, 'bot', true);
 
                     // Riproduci l'audio della risposta se disponibile
-                    if (data.audio_url) {
-                        responseAudio.src = data.audio_url;
+                    if (chatData.audio_url) {
+                        responseAudio.src = chatData.audio_url;
                         responseAudio.style.display = 'block';
                         responseAudio.play();
                     } else {
@@ -146,15 +187,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showLoadingMessage() {
+   // Funzione modificata per mostrare messaggi di caricamento specifici per utente o bot
+    function showLoadingMessage(sender = 'bot') {
+        console.log("Mostro indicatore di caricamento per:", sender);
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message bot loading-message';
+        loadingDiv.className = `message ${sender} loading-message`;
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content typing-indicator';
 
+        // Aggiungi la classe 'dot' agli span
         for (let i = 0; i < 3; i++) {
             const dot = document.createElement('span');
+            dot.className = 'dot';
             contentDiv.appendChild(dot);
         }
 
@@ -185,36 +230,57 @@ document.addEventListener('DOMContentLoaded', function() {
         messageInput.disabled = true;
         voiceButton.disabled = true;
 
-        // Aggiungi il messaggio dell'utente alla chat con timestamp
-        addMessage(message, 'user', true);
-        messageInput.value = '';
-
         try {
-            // Mostra indicatore di caricamento
-            showLoadingMessage();
+            // Aggiungi il messaggio dell'utente alla chat con timestamp
+            // (inizialmente senza emozioni/ambiente)
+            addMessage(message, 'user', true);
+            messageInput.value = '';
 
-            const formData = new FormData();
-            formData.append('message', message);
+            // FASE 1: Analisi dell'emozione e ambiente
+            const analyzeFormData = new FormData();
+            analyzeFormData.append('message', message);
 
-            const response = await fetch('/send_message', {
+            const analyzeResponse = await fetch('/analyze_message', {
                 method: 'POST',
-                body: formData
+                body: analyzeFormData
             });
 
-            const data = await response.json();
+            const analyzeData = await analyzeResponse.json();
+
+            // Aggiorna il messaggio dell'utente con le emoji
+            updateLastUserMessage(
+                { emotion: analyzeData.emotion, confidence: analyzeData.emotion_confidence },
+                { environment: analyzeData.environment, confidence: analyzeData.environment_confidence }
+            );
+
+            // Mostra indicatore di caricamento per la risposta del bot
+            showLoadingMessage();
+
+            // FASE 2: Richiesta della risposta del chatbot
+            const chatFormData = new FormData();
+            chatFormData.append('message', message);
+            chatFormData.append('emotion', analyzeData.emotion);
+
+            const chatResponse = await fetch('/get_chat_response', {
+                method: 'POST',
+                body: chatFormData
+            });
+
+
+            const chatData = await chatResponse.json();
 
             // Rimuovi l'indicatore di caricamento
             removeLoadingMessage();
 
             // Aggiorna l'etichetta dell'emozione
-            emotionLabel.textContent = getEmotionText(data.emotion);
+            emotionLabel.textContent = getEmotionText(analyzeData.emotion);
 
-            // Aggiungi la risposta del bot alla chat con timestamp
-            addMessage(data.response, 'bot', true);
+            // Aggiungi la risposta del bot alla chat
+            addMessage(chatData.response, 'bot', true);
 
             // Riproduci l'audio se disponibile
-            if (data.audio_url) {
-                responseAudio.src = data.audio_url;
+            if (chatData.audio_url) {
+                responseAudio.src = chatData.audio_url;
                 responseAudio.style.display = 'block';
                 responseAudio.play();
             } else {
@@ -222,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Errore nell\'invio del messaggio:', error);
+            removeLoadingMessage();
             showError('Si è verificato un errore nella comunicazione con il server');
         } finally {
             // Ripristina l'interfaccia
@@ -233,7 +300,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function addMessage(content, sender, showTime = false) {
+    // Funzione per aggiornare l'ultimo messaggio dell'utente con emoji
+    function updateLastUserMessage(emotion, environment) {
+        const userMessages = document.querySelectorAll('.message.user');
+        if (userMessages.length > 0) {
+            const lastUserMessage = userMessages[userMessages.length - 1];
+
+            // Rimuovi eventuali label esistenti
+            const existingLabels = lastUserMessage.querySelector('.message-labels');
+            if (existingLabels) {
+                existingLabels.remove();
+            }
+
+            // Crea container per etichette
+            const labelsContainer = document.createElement('div');
+            labelsContainer.className = 'message-labels';
+
+            // Aggiungi etichetta emozione
+            if (emotion) {
+                const emotionInfo = getEmotionInfo(emotion.emotion);
+                console.log("Emozione:", emotionInfo);
+                const emotionLabel = createLabel(
+                    emotionInfo.emoji,
+                    emotion.confidence,
+                    emotionInfo.text,
+                    emotion.probabilities
+                );
+                labelsContainer.appendChild(emotionLabel);
+            }
+
+            // Aggiungi etichetta ambiente
+            if (environment) {
+                const environmentInfo = getEnvironmentInfo(environment.environment);
+                const environmentLabel = createLabel(
+                    environmentInfo.emoji,
+                    environment.confidence,
+                    environmentInfo.text,
+                    environment.detections
+                );
+                labelsContainer.appendChild(environmentLabel);
+            }
+
+            lastUserMessage.appendChild(labelsContainer);
+        }
+    }
+
+    function addMessage(content, sender, showTime = false, emotion = null, environment = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
@@ -248,15 +360,145 @@ document.addEventListener('DOMContentLoaded', function() {
             const timestamp = document.createElement('div');
             timestamp.className = 'message-timestamp';
             const now = new Date();
-            timestamp.textContent = now.getHours().toString().padStart(2, '0') + ':' +
-                                   now.getMinutes().toString().padStart(2, '0');
+            timestamp.textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
             messageDiv.appendChild(timestamp);
         }
 
-        chatMessages.appendChild(messageDiv);
+        console.log("Emotion:", emotion);
+        console.log("Environment:", environment);
 
-        // Scroll to bottom
+        // Aggiungi container per le etichette di emozione e ambiente
+        if (emotion || environment) {
+            const labelsContainer = document.createElement('div');
+            labelsContainer.className = 'message-labels';
+
+            // Aggiungi etichetta emozione
+            if (emotion) {
+                const emotionInfo = getEmotionInfo(emotion.emotion || emotion);
+                const emotionLabel = createLabel(
+                    emotionInfo.emoji,
+                    ((emotion.confidence || 0.5) * 100).toFixed(1) + '%',
+                    emotionInfo.text,
+                    emotion.probabilities
+                );
+                labelsContainer.appendChild(emotionLabel);
+            }
+
+            // Aggiungi etichetta ambiente
+            if (environment) {
+                const environmentInfo = getEnvironmentInfo(environment.environment || environment);
+                const environmentLabel = createLabel(
+                    environmentInfo.emoji,
+                    ((environment.confidence || 0.5) * 100).toFixed(1) + '%',
+                    environmentInfo.text,
+                    environment.detections
+                );
+                labelsContainer.appendChild(environmentLabel);
+            }
+
+            messageDiv.appendChild(labelsContainer);
+        }
+
+        chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function createLabel(emoji, percentage, description, allProbabilities = null) {
+        const label = document.createElement('div');
+        label.className = 'message-label';
+
+        // Emoji sempre visibile
+        const emojiSpan = document.createElement('span');
+        emojiSpan.className = 'label-emoji';
+        emojiSpan.textContent = emoji;
+        label.appendChild(emojiSpan);
+
+        // Contenitore per probabilità (si mostra al passaggio del mouse)
+        if (allProbabilities && Object.keys(allProbabilities).length > 0) {
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'label-details';
+
+            // Titolo con emozione/ambiente principale
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'probability-title';
+            titleDiv.textContent = `${description}: ${percentage}`;
+            detailsDiv.appendChild(titleDiv);
+
+            // Linea divisoria
+            const divider = document.createElement('hr');
+            detailsDiv.appendChild(divider);
+
+            // Aggiungi tutte le probabilità
+            for (const [key, prob] of Object.entries(allProbabilities)) {
+                const probItem = document.createElement('div');
+                probItem.className = 'probability-item';
+
+                // Ottieni info per ogni chiave
+                let itemText = key;
+                let itemEmoji = '';
+
+                try {
+                    if (description.includes('rabbia') || description.includes('felicità')) {
+                        // Per emozioni
+                        const emotionInfo = getEmotionInfo(key);
+                        itemText = emotionInfo.text || key;
+                        itemEmoji = emotionInfo.emoji || '';
+                    } else {
+                        // Per ambienti
+                        const envInfo = getEnvironmentInfo(key);
+                        itemText = envInfo.text || key;
+                        itemEmoji = envInfo.emoji || '';
+                    }
+                } catch (e) {
+                    console.log('Errore nel recuperare info:', key, e);
+                }
+
+                // Formatta la riga con emoji, testo e percentuale
+                probItem.innerHTML = `<span>${itemEmoji} ${itemText}</span> <b>${(prob * 100).toFixed(1)}%</b>`;
+                detailsDiv.appendChild(probItem);
+            }
+
+            // Debug
+            console.log("Probabilities:", allProbabilities);
+
+            label.appendChild(detailsDiv);
+        }
+
+        return label;
+    }
+
+    function getEmotionInfo(emotion) {
+        // Mappa le emozioni inglesi in italiano con emoji
+        const emotionMap = {
+            'angry': {text: 'rabbia', emoji: '😠'},
+            'disgust': {text: 'disgusto', emoji: '🤢'},
+            'fearful': {text: 'paura', emoji: '😨'},
+            'happy': {text: 'felicità', emoji: '😊'},
+            'neutral': {text: 'neutro', emoji: '😐'},
+            'sad': {text: 'tristezza', emoji: '😢'}
+        };
+
+        return emotionMap[emotion.toLowerCase()] || {text: 'neutro', emoji: '😐'};
+    }
+
+    function getEnvironmentInfo(environment) {
+        // Mappa gli ambienti con emoji
+        const environmentMap = {
+            'Speech': {text: 'Conversazione', emoji: '🗣️'},
+            'Inside, small room': {text: 'Stanza piccola', emoji: '🏠'},
+            'Inside, large room or hall': {text: 'Stanza grande', emoji: '🏢'},
+            'Outside, urban or manmade': {text: 'Ambiente urbano', emoji: '🏙️'},
+            'Outside, rural or natural': {text: 'Ambiente naturale', emoji: '🌳'},
+            'Vehicle': {text: 'Veicolo', emoji: '🚗'},
+            'Music': {text: 'Musica', emoji: '🎵'},
+            'Silence': {text: 'Silenzio', emoji: '🔇'},
+            'Water': {text: 'Acqua', emoji: '💧'},
+            'Wind': {text: 'Vento', emoji: '💨'},
+            'Animal': {text: 'Animale', emoji: '🐾'},
+            'Noise': {text: 'Rumore', emoji: '📢'}
+        };
+
+        return environmentMap[environment] || {text: 'Ambiente sconosciuto', emoji: '❓'};
     }
 
     function getEmotionText(emotion) {

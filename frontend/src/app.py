@@ -59,6 +59,7 @@ async def send_message(message: str = Form(...)):
 
             emotion_data = emotion_response.json()
             emotion = emotion_data.get("emotion", "neutral")
+            confidence = emotion_data.get("confidence", 1.0)
 
             # Seconda richiesta per ottenere la risposta del chatbot
             logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/chat: Messaggio: {message},\nEmozione: {emotion}")
@@ -98,6 +99,102 @@ async def send_message(message: str = Form(...)):
 
 @app.post("/transcribe_and_analyze_audio")
 async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Leggi il contenuto del file
+            content = await audio_data.read()
+
+            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
+            logger.info(
+                f"Inviando richiesta a {API_GATEWAY_URL}/api/emotion/predict per rilevare l'emozione dell'audio")
+            logger.info(
+                f"Inviando richiesta a {API_GATEWAY_URL}/api/environment/classify per rilevare l'ambiente dell'audio")
+
+            # Invia l'audio ai tre servizi in parallelo
+            tasks = [
+                client.post(f"{API_GATEWAY_URL}/api/stt/transcribe",
+                            files={"audio_file": ("audio.wav", content, "audio/wav")}),
+                client.post(f"{API_GATEWAY_URL}/api/emotion/predict",
+                            files={"file": ("audio.wav", content, "audio/wav")}),
+                client.post(f"{API_GATEWAY_URL}/api/environment/classify",
+                            files={"file": ("audio.wav", content, "audio/wav")})
+            ]
+
+            import asyncio
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Gestisci le risposte
+            stt_response, emotion_response, env_response = responses
+
+            # Verifica eventuali errori
+            for resp in responses:
+                if isinstance(resp, Exception):
+                    logger.error(f"Errore durante la richiesta parallela: {resp}")
+                    raise HTTPException(status_code=500, detail=str(resp))
+
+            # Estrai i dati
+            stt_data = stt_response.json()
+            emotion_data = emotion_response.json()
+            environment_data = env_response.json()
+
+            logger.info(f"Risposta ricevuta da stt-service: {stt_data}")
+            logger.info(f"Risposta ricevuta da emotion-predictor: {emotion_data}")
+            logger.info(f"Risposta ricevuta da environment-classifier: {environment_data}")
+
+
+            # Restituisci i risultati della prima parte
+            return {
+                "text": stt_data.get("text", ""),
+                "emotion": emotion_data.get("emotion", "neutral"),
+                "environment": environment_data.get("environment", "Inside, small room"),
+                "environment_confidence": environment_data.get("confidence", 1.0),
+                "emotion_confidence": emotion_data.get("confidence", 1.0),
+                "emotion_probabilities": emotion_data.get("probabilities", {}),
+                "environment_detections": environment_data.get("all_detections", {})
+            }
+    except Exception as e:
+        logger.error(f"Errore durante l'analisi dell'audio: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/get_chat_response")
+async def get_chat_response(message: str = Form(...), emotion: str = Form(...), environment: str = Form(None)):
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Invia richiesta al chatbot
+            chat_payload = {"text": message, "emotion": emotion}
+            if environment:
+                chat_payload["environment"] = environment
+
+            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/chat: {chat_payload}")
+            chat_response = await client.post(
+                f"{API_GATEWAY_URL}/api/chat",
+                json=chat_payload
+            )
+
+            response_data = chat_response.json()
+
+            # Richiedi la sintesi vocale
+            tts_response = await client.post(
+                f"{API_GATEWAY_URL}/api/tts/synthesize",
+                json={"text": response_data["response"], "emotion": emotion}
+            )
+
+            audio_url = None
+            if tts_response.status_code == 200:
+                audio_url = f"{API_GATEWAY_URL}/api/tts/audio/{tts_response.json().get('audio_id', '')}"
+
+            return {
+                "response": response_data["response"],
+                "audio_url": audio_url
+            }
+    except Exception as e:
+        logger.error(f"Errore nel generare la risposta: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/transcribe_and_analyze_audio1")
+async def transcribe_and_analyze_audio1(audio_data: UploadFile = File(...)):
     try:
         async with httpx.AsyncClient(timeout=180.0) as client:
             # Leggi il contenuto del file

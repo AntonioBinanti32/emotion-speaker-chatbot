@@ -46,6 +46,7 @@ body {
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .chat-header {
@@ -103,6 +104,7 @@ body {
     align-items: center;
     gap: 8px;
     backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
 }
@@ -152,7 +154,7 @@ body {
 }
 
 .user .message-timestamp {
-    right: 10px;
+    right: -15px;
 }
 
 .bot .message-timestamp {
@@ -165,7 +167,7 @@ body {
 }
 
 .message-content {
-    padding: 15px 20px;
+    padding: 20px 30px;
     border-radius: 18px;
     box-shadow: var(--shadow-sm);
     position: relative;
@@ -445,5 +447,275 @@ button:active {
 
     button {
         padding: 12px 15px;
+    }
+}
+
+/* Stili per le etichette di emozione e ambiente */
+.message-labels {
+    display: flex;
+    margin-top: 6px;
+    gap: 8px;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+
+.message.user .message-labels {
+    justify-content: flex-end;
+    margin-right: 10px;
+}
+
+.message-label {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: help;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.message-label:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+}
+
+.label-percentage {
+    font-size: 0.75rem;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+/* Tooltip personalizzato */
+.message-label:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    margin-bottom: 5px;
+}
+
+/* Indicatore di caricamento per i messaggi */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 15px;
+}
+
+/* Punti animati nell'indicatore di caricamento */
+.typing-indicator .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    opacity: 0.6;
+    animation: typing-dot 1.4s infinite both;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-dot {
+    0% { transform: scale(0.8); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.4; }
+}
+
+/* Modifica per differenziare i colori in base al mittente */
+.user .typing-indicator .dot {
+    background-color: white;
+}
+
+.bot .typing-indicator .dot {
+    background-color: var(--dark-color);
+}
+
+/* Stile per le etichette espandibili */
+.message-label {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.message-label:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.label-emoji {
+    font-size: 1.25rem;
+}
+
+.probability-item {
+    padding: 3px 0;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+/* Stile per etichette emoji stile WhatsApp */
+.message {
+    position: relative; /* Per posizionamento assoluto delle etichette */
+}
+
+/* Miglioramento stili per le label emoji WhatsApp style */
+.message-labels {
+    position: absolute;
+    bottom: -10px;
+    right: 10px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+
+.message-label {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1dd0df7a;
+    box-shadow: 0 2px 4px rgba(0,0,0,1);
+    cursor: pointer;
+}
+
+.message-label:hover .label-details {
+    display: block;
+}
+
+.probability-title {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.probability-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+/* Assicurati che la label sia visibile sopra altri elementi */
+.message-label:hover {
+    z-index: 100;
+}
+
+/* Modifica per posizionamento intelligente dei tooltip */
+.message-label {
+    position: relative;
+}
+
+.label-details {
+    position: absolute;
+    bottom: 30px;
+    right: auto; /* Rimuovi right: 0 */
+    left: 50%;   /* Centra rispetto all'emoji */
+    transform: translateX(-50%); /* Centra perfettamente */
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    min-width: 220px;
+    z-index: 500;
+    display: none;
+}
+
+/* Controlla che rimanga nella viewport sul lato destro */
+.message.user .message-label .label-details {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Aggiunti per evitare overflow a sinistra */
+.message.bot .message-label .label-details {
+    left: 0;
+    right: auto;
+    transform: translateX(0);
+}
+
+@media (max-width: 500px) {
+    .label-details {
+        min-width: 180px;
+        max-width: 80vw;
+        left: 0;
+    }
+}
+
+/* Posizionamento migliorato per tooltip delle emoji */
+.message-label {
+    position: relative;
+}
+
+.label-details {
+    position: absolute;
+    bottom: auto; /* Rimuovi posizionamento fisso in basso */
+    top: 30px;    /* Posiziona sotto l'emoji invece che sopra */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    min-width: 220px;
+    max-width: 280px;
+    z-index: 500;
+    display: none;
+}
+
+/* Controlla posizionamento per messaggi utente (a destra) */
+.message.user .message-label .label-details {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Controlla posizionamento per messaggi bot (a sinistra) */
+.message.bot .message-label .label-details {
+    left: 0;
+    right: auto;
+    transform: translateX(0);
+}
+
+/* Messaggi vicino all'header - inverte posizionamento */
+.chat-messages .message:first-child .message-label .label-details,
+.chat-messages .message:nth-child(2) .message-label .label-details {
+    top: auto;
+    bottom: 30px;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .label-details {
+        min-width: 180px;
+        max-width: 80vw;
     }
 }
