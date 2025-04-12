@@ -11,7 +11,7 @@ from typing import Optional
 
 # Configurazione
 PORT = int(os.getenv("STT_SERVICE_PORT", 5001))
-MODEL_SIZE = "base" #os.getenv("WHISPER_MODEL_SIZE", "base")  # tiny, base, small, medium, large
+MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")  # tiny, base, small, medium, large
 
 # Configurazione logging
 logging.basicConfig(
