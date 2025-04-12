@@ -1,0 +1,790 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --primary-color: #5e60ce;
+    --secondary-color: #6930c3;
+    --accent-color: #48bfe3;
+    --dark-color: #2b2d42;
+    --light-color: #f8f9fa;
+    --gradient-primary: linear-gradient(135deg, #5e60ce, #6930c3);
+    --gradient-secondary: linear-gradient(135deg, #56cfe1, #48bfe3);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+    --transition: all 0.3s ease;
+}
+
+body {
+    background: linear-gradient(135deg, #4158D0, #C850C0, #FFCC70);
+    background-size: 300% 300%;
+    animation: gradientBG 15s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.chat-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.chat-header {
+    padding: 20px 30px;
+    background: linear-gradient(90deg, #5e60ce, #6930c3);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    position: relative;
+}
+
+.chat-header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--accent-color), transparent, var(--accent-color));
+    opacity: 0.7;
+}
+
+.chat-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-header h1 i {
+    font-size: 1.6rem;
+    background: var(--light-color);
+    color: var(--primary-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.emotion-display {
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.25);
+    padding: 8px 15px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.emotion-display i {
+    color: var(--accent-color);
+}
+
+#emotion-label {
+    font-weight: bold;
+    margin-left: 5px;
+    padding: 3px 10px;
+    border-radius: 15px;
+    background-color: rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background-image: radial-gradient(circle at center, rgba(200, 200, 220, 0.05) 0%, rgba(200, 200, 220, 0.01) 70%);
+    background-size: 40px 40px;
+    scroll-behavior: smooth;
+}
+
+.message {
+    margin-bottom: 26px;
+    display: flex;
+    animation: fadeIn 0.5s;
+    position: relative;
+    max-width: 85%;
+}
+
+.message.user {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.message-timestamp {
+    position: absolute;
+    bottom: -18px;
+    font-size: 0.7rem;
+    color: #888;
+    opacity: 0.8;
+}
+
+.user .message-timestamp {
+    right: -15px;
+}
+
+.bot .message-timestamp {
+    left: 10px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-content {
+    padding: 20px 30px;
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    line-height: 1.5;
+    transition: var(--transition);
+}
+
+.user .message-content {
+    background: var(--gradient-primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.bot .message-content {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    color: var(--dark-color);
+    border-bottom-left-radius: 4px;
+}
+
+.user .message-content:hover, .bot .message-content:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.chat-input {
+    display: flex;
+    padding: 20px 30px;
+    background-color: #f8f9fa;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 10;
+}
+
+#message-input {
+    flex: 1;
+    padding: 15px 25px;
+    border: 1px solid #e9ecef;
+    border-radius: 30px;
+    font-size: 1rem;
+    margin-right: 15px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: var(--transition);
+    background-color: white;
+}
+
+#message-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(94, 96, 206, 0.15);
+}
+
+button {
+    padding: 15px 25px;
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, #6930c3, #5e60ce);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+#voice-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--gradient-secondary);
+}
+
+.recording {
+    background: linear-gradient(135deg, #ff4d4d, #d9534f) !important;
+    animation: pulse 1.5s infinite;
+}
+
+#response-audio {
+    width: 100%;
+    margin-top: 15px;
+    border-radius: 30px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-sm);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(255, 77, 77, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 77, 77, 0);
+    }
+}
+
+/* Stili per i diversi stati emotivi */
+#emotion-label.felice {
+    background-color: #4caf50;
+    color: white;
+}
+
+#emotion-label.triste {
+    background-color: #2196f3;
+    color: white;
+}
+
+#emotion-label.arrabbiato {
+    background-color: #f44336;
+    color: white;
+}
+
+#emotion-label.spaventato {
+    background-color: #ff9800;
+    color: white;
+}
+
+#emotion-label.sorpreso {
+    background-color: #9c27b0;
+    color: white;
+}
+
+#emotion-label.neutrale {
+    background-color: #9e9e9e;
+    color: white;
+}
+
+/* Indicatore di caricamento */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-right: 10px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #888;
+    animation: dot-flashing 1s infinite alternate;
+}
+
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.3s; }
+.dot:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes dot-flashing {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Barra di scorrimento personalizzata */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: rgba(240, 240, 240, 0.5);
+    border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(94, 96, 206, 0.5);
+    border-radius: 10px;
+    transition: var(--transition);
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(94, 96, 206, 0.8);
+}
+
+/* Miglioramento visualizzazione emoji nelle emozioni */
+#emotion-label {
+    font-weight: bold;
+    margin-left: 5px;
+    padding: 5px 12px;
+    border-radius: 15px;
+    background-color: rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Stile per l'emoji */
+#emotion-label::before {
+    content: attr(data-emoji);
+    font-size: 1.2em;
+    line-height: 1;
+    margin-right: 2px;
+}
+
+/* Aggiornamento stili per stati emotivi con emoji */
+#emotion-label.rabbia::before { content: '😠'; }
+#emotion-label.disgusto::before { content: '🤢'; }
+#emotion-label.paura::before { content: '😨'; }
+#emotion-label.felicità::before { content: '😊'; }
+#emotion-label.neutro::before { content: '😐'; }
+#emotion-label.tristezza::before { content: '😢'; }
+
+/* Aggiornamento colori per le emozioni */
+#emotion-label.rabbia {
+    background-color: rgba(244, 67, 54, 0.85);
+    color: white;
+}
+
+#emotion-label.disgusto {
+    background-color: rgba(76, 175, 80, 0.65);
+    color: white;
+}
+
+#emotion-label.paura {
+    background-color: rgba(255, 152, 0, 0.85);
+    color: white;
+}
+
+#emotion-label.felicità {
+    background-color: rgba(76, 175, 80, 0.85);
+    color: white;
+}
+
+#emotion-label.neutro {
+    background-color: rgba(158, 158, 158, 0.85);
+    color: white;
+}
+
+#emotion-label.tristezza {
+    background-color: rgba(33, 150, 243, 0.85);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px 20px;
+    }
+
+    .emotion-display {
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .chat-input {
+        padding: 15px;
+    }
+
+    #message-input {
+        padding: 12px 15px;
+    }
+
+    button {
+        padding: 12px 15px;
+    }
+}
+
+/* Stili per le etichette di emozione e ambiente */
+.message-labels {
+    display: flex;
+    margin-top: 6px;
+    gap: 8px;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+
+.message.user .message-labels {
+    justify-content: flex-end;
+    margin-right: 10px;
+}
+
+.message-label {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: help;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.message-label:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+}
+
+.label-percentage {
+    font-size: 0.75rem;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+/* Tooltip personalizzato *//*
+.message-label:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    margin-bottom: 5px;
+}*/
+
+/* Indicatore di caricamento per i messaggi */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 15px;
+}
+
+/* Punti animati nell'indicatore di caricamento */
+.typing-indicator .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    opacity: 0.6;
+    animation: typing-dot 1.4s infinite both;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-dot {
+    0% { transform: scale(0.8); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.4; }
+}
+
+/* Modifica per differenziare i colori in base al mittente */
+.user .typing-indicator .dot {
+    background-color: white;
+}
+
+.bot .typing-indicator .dot {
+    background-color: var(--dark-color);
+}
+
+/* Stile per le etichette espandibili */
+.message-label {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.message-label:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.label-emoji {
+    font-size: 1.25rem;
+}
+
+.probability-item {
+    padding: 3px 0;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+/* Stile per etichette emoji stile WhatsApp */
+.message {
+    position: relative; /* Per posizionamento assoluto delle etichette */
+}
+
+/* Miglioramento stili per le label emoji WhatsApp style */
+.message-labels {
+    position: absolute;
+    bottom: -10px;
+    right: 10px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+
+.message-label {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1dd0df7a;
+    box-shadow: 0 2px 4px rgba(0,0,0,1);
+    cursor: pointer;
+}
+
+.message-label:hover .label-details {
+    display: block;
+}
+
+.probability-title {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.probability-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+/* Assicurati che la label sia visibile sopra altri elementi */
+.message-label:hover {
+    z-index: 100;
+}
+
+/* Modifica per posizionamento intelligente dei tooltip */
+.message-label {
+    position: relative;
+}
+
+.label-details {
+    position: absolute;
+    bottom: 30px;
+    right: auto; /* Rimuovi right: 0 */
+    top: auto;
+    left: 50%;   /* Centra rispetto all'emoji */
+    transform: translateX(-50%); /* Centra perfettamente */
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    min-width: 220px;
+    z-index: 500;
+    display: none;
+}
+
+/* Controlla che rimanga nella viewport sul lato destro */
+.message.user .message-label .label-details {
+    left: auto;
+    top: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Aggiunti per evitare overflow a sinistra */
+.message.bot .message-label .label-details {
+    left: 0;
+    right: auto;
+    transform: translateX(0);
+}
+
+@media (max-width: 500px) {
+    .label-details {
+        min-width: 180px;
+        max-width: 80vw;
+        left: 0;
+    }
+}
+
+/* Posizionamento migliorato per tooltip delle emoji */
+.message-label {
+    position: relative;
+}
+
+.label-details {
+    position: absolute;
+    bottom: auto; /* Rimuovi posizionamento fisso in basso */
+    top: 30px;    /* Posiziona sotto l'emoji invece che sopra */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    min-width: 220px;
+    max-width: 280px;
+    z-index: 500;
+    display: none;
+}
+
+/* Controlla posizionamento per messaggi utente (a destra) */
+.message.user .message-label .label-details {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+}
+
+/* Controlla posizionamento per messaggi bot (a sinistra) */
+.message.bot .message-label .label-details {
+    left: 0;
+    right: auto;
+    transform: translateX(0);
+}
+
+/* Messaggi vicino all'header - inverte posizionamento */
+.chat-messages .message:first-child .message-label .label-details,
+.chat-messages .message:nth-child(2) .message-label .label-details {
+    top: 32px;
+    /*bottom: 30px;*/
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .label-details {
+        min-width: 180px;
+        max-width: 80vw;
+    }
+}
+
+/* Animazione di caricamento audio */
+.audio-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(29, 208, 223, 0.1);
+    border-radius: 20px;
+}
+
+.audio-loading i {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
+.audio-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+}
+
+.audio-wave span {
+    display: block;
+    width: 3px;
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 3px;
+    animation: audio-wave 1.2s infinite ease-in-out;
+}
+
+.audio-wave span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.audio-wave span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.audio-wave span:nth-child(4) {
+    animation-delay: 0.6s;
+}
+
+@keyframes audio-wave {
+    0%, 100% { height: 6px; }
+    50% { height: 18px; }
+}
+
+#audio-container {
+    width: 100%;
+    padding: 5px 0;
+}
+
+.audio-error {
+    padding: 10px;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.audio-error i {
+    font-size: 1.2rem;
+}

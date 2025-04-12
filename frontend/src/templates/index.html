@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotive Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1><i class="fas fa-robot"></i> Emotive Chatbot</h1>
+            <div class="emotion-display">
+                <i class="fas fa-heart-pulse"></i>
+                <span>Emozione: </span>
+                <span id="emotion-label" class="neutro">neutro</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <div class="message-content">
+                    Ciao! Sono il tuo assistente virtuale emotivo. Come posso aiutarti oggi?
+                </div>
+                <div class="message-timestamp">
+                    <script>
+                        document.write(new Date().getHours().toString().padStart(2, '0') + ':' +
+                                       new Date().getMinutes().toString().padStart(2, '0'));
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="message-input" placeholder="Scrivi un messaggio...">
+            <button id="send-button"><i class="fas fa-paper-plane"></i> Invia</button>
+            <button id="voice-button" title="Registra messaggio vocale">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+
+        <audio id="response-audio" controls style="display: none;"></audio>
+    </div>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+</body>
+</html>

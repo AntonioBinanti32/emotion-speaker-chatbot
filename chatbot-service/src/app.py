@@ -3,9 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 import service
-import config
 import os
-from dotenv import load_dotenv
 
 PORT = int(os.getenv("CHATBOT_SERVICE_PORT", 5003))
 CHESHIRE_CAT_URL = os.getenv("CHESHIRE_CAT_URL", "http://cheshire-cat-core:80")
@@ -24,6 +22,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     text: str
     emotion: str = None
+    environment: str = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -35,7 +34,8 @@ async def health_check():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        response = await service.get_chat_response(request.text, request.emotion)
+        print(f"Sending to Cheshire Cat: {request}")
+        response = await service.get_chat_response(request.text, request.emotion, request.environment)
         return ChatResponse(response=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

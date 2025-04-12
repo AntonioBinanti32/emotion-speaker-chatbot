@@ -1,0 +1,52 @@
+events {
+    worker_connections ${WORKER_CONNECTIONS};
+}
+
+http {
+    server {
+        listen ${API_GATEWAY_PORT};
+
+        # Routing per il frontend
+        location / {
+            proxy_pass http://frontend:${FRONTEND_PORT};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+        }
+
+        # Routing per STT
+        location /api/stt {
+            proxy_pass http://stt-service:${STT_SERVICE_PORT};
+            proxy_http_version 1.1;
+        }
+
+        # Routing per emotion predictor
+        location /api/emotion {
+            proxy_pass http://emotion-predictor:${EMOTION_PREDICTOR_PORT};
+            proxy_http_version 1.1;
+        }
+
+        # Routing per chatbot
+        location /api/chat {
+            proxy_pass http://chatbot-service:${CHATBOT_SERVICE_PORT};
+            proxy_http_version 1.1;
+        }
+
+        # Routing per TTS
+        location /api/tts {
+            proxy_pass http://tts-service:${TTS_SERVICE_PORT};
+            proxy_http_version 1.1;
+        }
+
+        # Routing per Cheshire Cat
+        location /api/cheshire {
+            proxy_pass http://cheshire-cat-core:${CHESHIRE_CAT_PORT_INTERNAL};
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+        }
+    }
+}
