@@ -168,9 +168,7 @@ function createDebugDiv() {
 
                     // Riproduci l'audio della risposta se disponibile
                     if (chatData.audio_url) {
-                        responseAudio.src = chatData.audio_url;
-                        responseAudio.style.display = 'block';
-                        responseAudio.play();
+                        checkAndPlayAudio(chatData.audio_url);
                     } else {
                         responseAudio.style.display = 'none';
                     }
@@ -239,18 +237,18 @@ function createDebugDiv() {
             // FASE 1: Analisi dell'emozione e ambiente
             const analyzeFormData = new FormData();
             analyzeFormData.append('message', message);
-
-            const analyzeResponse = await fetch('/analyze_message', {
+            console.log("Invio messaggio per analisi:", message);
+            /*const analyzeResponse = await fetch('/analyze_message', {
                 method: 'POST',
                 body: analyzeFormData
             });
-
-            const analyzeData = await analyzeResponse.json();
+            */
+            const analyzeData = {emotion: "Unknown", environment: "Unknown"};
 
             // Aggiorna il messaggio dell'utente con le emoji
             updateLastUserMessage(
-                { emotion: analyzeData.emotion, confidence: analyzeData.emotion_confidence },
-                { environment: analyzeData.environment, confidence: analyzeData.environment_confidence }
+                { emotion: analyzeData.emotion},
+                { environment: analyzeData.environment}
             );
 
             // Mostra indicatore di caricamento per la risposta del bot
@@ -260,6 +258,7 @@ function createDebugDiv() {
             const chatFormData = new FormData();
             chatFormData.append('message', message);
             chatFormData.append('emotion', analyzeData.emotion);
+            chatFormData.append('environment', analyzeData.environment);
 
             const chatResponse = await fetch('/get_chat_response', {
                 method: 'POST',
@@ -268,6 +267,8 @@ function createDebugDiv() {
 
 
             const chatData = await chatResponse.json();
+
+            console.log("Risposta del chatbot:", chatData);
 
             // Rimuovi l'indicatore di caricamento
             removeLoadingMessage();
@@ -280,9 +281,7 @@ function createDebugDiv() {
 
             // Riproduci l'audio se disponibile
             if (chatData.audio_url) {
-                responseAudio.src = chatData.audio_url;
-                responseAudio.style.display = 'block';
-                responseAudio.play();
+                checkAndPlayAudio(chatData.audio_url);
             } else {
                 responseAudio.style.display = 'none';
             }
@@ -438,7 +437,7 @@ function createDebugDiv() {
                 let itemEmoji = '';
 
                 try {
-                    if (description.includes('rabbia') || description.includes('felicità')) {
+                    if (description.includes('rabbia') || description.includes('disgusto') || description.includes('paura') || description.includes('felicità') || description.includes('neutro') || description.includes('tristezza')) {
                         // Per emozioni
                         const emotionInfo = getEmotionInfo(key);
                         itemText = emotionInfo.text || key;
@@ -465,6 +464,94 @@ function createDebugDiv() {
         }
 
         return label;
+    }
+
+    // Funzione per verificare e riprodurre l'audio con polling
+    function checkAndPlayAudio(audioUrl) {
+        if (!audioUrl) return;
+
+        console.log("URL audio originale:", audioUrl);
+
+        // Sostituisci l'URL completo con un percorso relativo
+        const urlParts = audioUrl.split('/');
+        const audioId = urlParts[urlParts.length - 1];
+        const relativeAudioUrl = `/api/tts/audio/${audioId}`;
+
+        console.log("URL audio convertito in percorso relativo:", relativeAudioUrl);
+        responseAudio.style.display = 'none';
+
+        // Mostra animazione di caricamento audio
+        const audioContainer = document.getElementById('audio-container') || createAudioContainer();
+        audioContainer.innerHTML = '<div class="audio-loading"><i class="fas fa-music"></i><div class="audio-wave"><span></span><span></span><span></span><span></span></div></div>';
+        audioContainer.style.display = 'flex';
+
+        // Funzione per verificare lo stato dell'audio
+        async function pollAudioStatus() {
+            try {
+                const response = await fetch(relativeAudioUrl);
+
+                if (response.status === 200) {
+                    if (response.headers.get('content-type')?.includes('audio/')) {
+                        // Audio pronto, riproduci
+                        console.log("Audio pronto, riproduzione in corso");
+                        responseAudio.src = relativeAudioUrl;
+                        audioContainer.innerHTML = ''; // Rimuovi animazione
+                        audioContainer.appendChild(responseAudio);
+                        responseAudio.style.display = 'block';
+                        responseAudio.play();
+                        return true;
+                    } else {
+                        // Controlla se è in elaborazione o errore
+                        const data = await response.json();
+                        console.log("Risposta ricevuta:", data);
+
+                        if (data.status === "processing") {
+                            console.log("Audio in elaborazione, riprovo tra 1 secondo");
+                            setTimeout(pollAudioStatus, 1000);
+                            return false;
+                        } else if (data.status === "error") {
+                            // Gestisci l'errore
+                            console.error("Errore dal server:", data.detail || "Errore sconosciuto");
+                            audioContainer.innerHTML = '<div class="audio-error"><i class="fas fa-exclamation-circle"></i> Errore nella generazione audio</div>';
+                            setTimeout(() => { audioContainer.style.display = 'none'; }, 3000);
+                            return false;
+                        } else {
+                            console.error("Formato di risposta inaspettato:", data);
+                            audioContainer.style.display = 'none';
+                            return false;
+                        }
+                    }
+                } else {
+                    console.error("Errore nella richiesta:", response.status);
+                    audioContainer.innerHTML = '<div class="audio-error"><i class="fas fa-exclamation-circle"></i> Errore: ' + response.status + '</div>';
+                    setTimeout(() => { audioContainer.style.display = 'none'; }, 3000);
+                    return false;
+                }
+            } catch (error) {
+                console.error("Errore durante il controllo dell'audio:", error);
+                setTimeout(pollAudioStatus, 2000); // Riprova con un intervallo più lungo in caso di errore
+                return false;
+            }
+        }
+
+        // Avvia il polling
+        pollAudioStatus();
+    }
+
+    // Funzione per creare il container audio se non esiste
+    function createAudioContainer() {
+        const container = document.createElement('div');
+        container.id = 'audio-container';
+        container.style.display = 'none';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.margin = '10px 0';
+
+        // Trova dove inserire il container (dopo i messaggi della chat)
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.parentNode.insertBefore(container, chatMessages.nextSibling);
+
+        return container;
     }
 
     function getEmotionInfo(emotion) {

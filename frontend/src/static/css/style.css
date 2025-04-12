@@ -491,7 +491,7 @@ button:active {
     color: rgba(0, 0, 0, 0.7);
 }
 
-/* Tooltip personalizzato */
+/* Tooltip personalizzato *//*
 .message-label:hover::after {
     content: attr(title);
     position: absolute;
@@ -506,7 +506,7 @@ button:active {
     white-space: nowrap;
     pointer-events: none;
     margin-bottom: 5px;
-}
+}*/
 
 /* Indicatore di caricamento per i messaggi */
 .typing-indicator {
@@ -637,6 +637,7 @@ button:active {
     position: absolute;
     bottom: 30px;
     right: auto; /* Rimuovi right: 0 */
+    top: auto;
     left: 50%;   /* Centra rispetto all'emoji */
     transform: translateX(-50%); /* Centra perfettamente */
     background-color: white;
@@ -651,6 +652,7 @@ button:active {
 /* Controlla che rimanga nella viewport sul lato destro */
 .message.user .message-label .label-details {
     left: auto;
+    top: auto;
     right: 0;
     transform: translateX(0);
 }
@@ -708,8 +710,8 @@ button:active {
 /* Messaggi vicino all'header - inverte posizionamento */
 .chat-messages .message:first-child .message-label .label-details,
 .chat-messages .message:nth-child(2) .message-label .label-details {
-    top: auto;
-    bottom: 30px;
+    top: 32px;
+    /*bottom: 30px;*/
 }
 
 /* Responsive */
@@ -718,4 +720,71 @@ button:active {
         min-width: 180px;
         max-width: 80vw;
     }
+}
+
+/* Animazione di caricamento audio */
+.audio-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(29, 208, 223, 0.1);
+    border-radius: 20px;
+}
+
+.audio-loading i {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
+.audio-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+}
+
+.audio-wave span {
+    display: block;
+    width: 3px;
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 3px;
+    animation: audio-wave 1.2s infinite ease-in-out;
+}
+
+.audio-wave span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.audio-wave span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.audio-wave span:nth-child(4) {
+    animation-delay: 0.6s;
+}
+
+@keyframes audio-wave {
+    0%, 100% { height: 6px; }
+    50% { height: 18px; }
+}
+
+#audio-container {
+    width: 100%;
+    padding: 5px 0;
+}
+
+.audio-error {
+    padding: 10px;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.audio-error i {
+    font-size: 1.2rem;
 }

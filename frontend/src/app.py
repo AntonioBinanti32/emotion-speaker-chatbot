@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Request, Form, HTTPException, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 import httpx
 import os
 import uvicorn
@@ -100,7 +100,7 @@ async def send_message(message: str = Form(...)):
 @app.post("/transcribe_and_analyze_audio")
 async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:
             # Leggi il contenuto del file
             content = await audio_data.read()
 
@@ -160,7 +160,7 @@ async def transcribe_and_analyze_audio(audio_data: UploadFile = File(...)):
 @app.post("/get_chat_response")
 async def get_chat_response(message: str = Form(...), emotion: str = Form(...), environment: str = Form(None)):
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=600.0) as client:
             # Invia richiesta al chatbot
             chat_payload = {"text": message, "emotion": emotion}
             if environment:
@@ -174,11 +174,17 @@ async def get_chat_response(message: str = Form(...), emotion: str = Form(...), 
 
             response_data = chat_response.json()
 
+            logger.info(f"Risposta ricevuta dal chatbot: {chat_response}")
+
+            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/tts/synthesize: ", {"text": response_data["response"], "emotion": emotion})
+
             # Richiedi la sintesi vocale
             tts_response = await client.post(
                 f"{API_GATEWAY_URL}/api/tts/synthesize",
                 json={"text": response_data["response"], "emotion": emotion}
             )
+
+            logger.info(f"Risposta ricevuta da tts-service per la sintetizzazione: {tts_response.json()}")
 
             audio_url = None
             if tts_response.status_code == 200:
@@ -193,167 +199,38 @@ async def get_chat_response(message: str = Form(...), emotion: str = Form(...), 
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/transcribe_and_analyze_audio1")
-async def transcribe_and_analyze_audio1(audio_data: UploadFile = File(...)):
+@app.get("/api/tts/audio/{audio_id}")
+async def proxy_audio(audio_id: str):
     try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            # Leggi il contenuto del file
-            content = await audio_data.read()
+        logger.info(f"Proxy richiesta audio per id: {audio_id}")
+        target_url = f"{API_GATEWAY_URL}/api/tts/audio/{audio_id}"
+        logger.info(f"URL target: {target_url}")
 
-            # Invia l'audio al servizio STT per trascrizione
-            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
-            files_stt = {"audio_file": ("audio.wav", content, "audio/wav")}
-            stt_response = await client.post(
-                f"{API_GATEWAY_URL}/api/stt/transcribe",
-                files=files_stt
-            )
-            logger.info(f"Risposta ricevuta da stt-service: {stt_response.json()}")
-
-            # Invia l'audio al servizio emotion-predictor per l'analisi
-            logger.info(
-                f"Inviando richiesta a {API_GATEWAY_URL}/api/emotion/predict per rilevare l'emozione dell'audio")
-            files_emotion = {"file": ("audio.wav", content, "audio/wav")}
-            emotion_response = await client.post(
-                f"{API_GATEWAY_URL}/api/emotion/predict",
-                files=files_emotion
-            )
-            logger.info(f"Risposta ricevuta da emotion-predictor: {emotion_response.json()}")
-
-            # Invia l'audio al classificatore ambientale
-            logger.info(
-                f"Inviando richiesta a {API_GATEWAY_URL}/api/environment/classify per rilevare l'ambiente dell'audio")
-            files_env = {"file": ("audio.wav", content, "audio/wav")}
-            env_response = await client.post(
-                f"{API_GATEWAY_URL}/api/environment/classify",
-                files=files_env
-            )
-            logger.info(f"Risposta ricevuta da environment-classifier: {env_response.json()}")
-
-            stt_data = stt_response.json()
-            emotion_data = emotion_response.json()
-            environment_data = env_response.json()
-
-            emotion = emotion_data.get("emotion", "neutral")
-            environment = environment_data.get("environment", "Inside, small room")
-            transcribed_text = stt_data.get("text", "")
+        async with httpx.AsyncClient(timeout=600.0) as client:
+            response = await client.get(target_url)
 
             logger.info(
-                f"Trascrizione completata. Testo: {transcribed_text[:50]}... Emozione: {emotion}, Ambiente: {environment}")
+                f"Risposta da gateway: status={response.status_code}, content-type={response.headers.get('content-type')}")
 
-            # Se abbiamo testo trascritto, inviamolo al chatbot con l'ambiente rilevato
-            chat_response = None
-            audio_url = None
-            """
-            if transcribed_text:
-                chat_response_req = await client.post(
-                    f"{API_GATEWAY_URL}/api/chat",
-                    json={"text": transcribed_text, "emotion": emotion, "environment": environment}
-                )
-                chat_response = chat_response_req.json()
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', '')
+                if content_type.startswith('audio/'):
+                    # Restituisci il file audio
+                    return Response(
+                        content=response.content,
+                        media_type=content_type,
+                        headers=dict(response.headers)
+                    )
+                else:
+                    # Restituisci la risposta JSON (es. stato "processing")
+                    return response.json()
+            else:
+                logger.error(f"Errore nella risposta dal gateway: {response.status_code} - {response.text}")
+                return {"detail": response.text or "Errore nel recupero dell'audio"}
 
-                
-                # Richiesta TTS
-                tts_response = await client.post(
-                    f"{API_GATEWAY_URL}/api/tts/synthesize",
-                    json={"text": chat_response["response"], "emotion": emotion}
-                )
-
-                if tts_response.status_code == 200:
-                    audio_url = f"{API_GATEWAY_URL}/api/tts/audio/{tts_response.json().get('audio_id', '')}"
-            """
-            return {
-                "text": transcribed_text,
-                "emotion": emotion,
-                "environment": environment,
-                "environment_confidence": environment_data.get("confidence", 1.0),
-                "emotion_confidence": emotion_data.get("confidence", 1.0),
-                "response": chat_response["response"] if chat_response else None,
-                "audio_url": audio_url
-            }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/transcribe_and_analyze_audio_0")
-async def transcribe_and_analyze_audio_0(audio_data: UploadFile = File(...)):
-    try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            # Leggi il contenuto del file
-            content = await audio_data.read()
-
-            # Invia l'audio al servizio STT per trascrizione
-            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/stt/transcribe per la trascrizione dell'audio")
-
-            files_stt = {"audio_file": ("audio.wav", content, "audio/wav")}
-            stt_response = await client.post(
-                f"{API_GATEWAY_URL}/api/stt/transcribe",
-                files=files_stt
-            )
-
-            logger.info(f"Risposta ricevuta da stt-service: {stt_response.json()}")
-
-            # Invia l'audio al servizio emotion-predictor per l'analisi
-            logger.info(f"Inviando richiesta a {API_GATEWAY_URL}/api/emotion/predict per rilevare l'emozione dell'audio")
-
-            files_emotion = {"file": ("audio.wav", content, "audio/wav")}
-            emotion_response = await client.post(
-                f"{API_GATEWAY_URL}/api/emotion/predict",
-                files=files_emotion
-            )
-
-            logger.info(f"Risposta ricevuta da emotion-predictor: {emotion_response.json()}")
-
-            stt_data = stt_response.json()
-            emotion_data = emotion_response.json()
-
-            emotion = emotion_data.get("emotion", "neutral")
-            transcribed_text = stt_data.get("text", "")
-
-            logger.info(f"Trascrizione completata. Testo: {transcribed_text[:50]}... Emozione: {emotion}")
-
-            # Se abbiamo testo trascritto, inviamolo al chatbot
-            chat_response = None
-            audio_url = None
-            """
-            if transcribed_text:
-                chat_response_req = await client.post(
-                    f"{API_GATEWAY_URL}/api/chat",
-                    json={"text": transcribed_text, "emotion": emotion}
-                )
-                chat_response = chat_response_req.json()
-
-                # Richiesta TTS
-                tts_response = await client.post(
-                    f"{API_GATEWAY_URL}/api/tts/synthesize",
-                    json={"text": chat_response["response"], "emotion": emotion}
-                )
-
-                if tts_response.status_code == 200:
-                    audio_url = f"{API_GATEWAY_URL}/api/tts/audio/{tts_response.json().get('audio_id', '')}"
-            """
-            return {
-                "text": transcribed_text,
-                "emotion": emotion,
-                "confidence": emotion_data.get("confidence", 1.0),
-                "response": chat_response["response"] if chat_response else None,
-                "audio_url": audio_url
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-"""
-@app.post("/transcribe_audio")
-async def transcribe_audio(audio_data: bytes = Form(...)):
-    try:
-        async with httpx.AsyncClient() as client:
-            # Invia l'audio al servizio STT
-            files = {"audio_file": ("audio.wav", audio_data)}
-            stt_response = await client.post(f"{API_GATEWAY_URL}/api/stt/transcribe", files=files)
-
-            return stt_response.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-"""
+        logger.error(f"Errore nel proxy dell'audio {audio_id}: {e}")
+        return {"detail": str(e), "status": "error"}
 
 if __name__ == "__main__":
     print(f"Starting frontend service on port: {PORT}")

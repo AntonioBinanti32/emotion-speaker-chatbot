@@ -129,8 +129,14 @@ async def generate_audio(text: str, audio_id: str, emotion: str = "neutral", spe
         with open(processing_path, "w") as f:
             f.write("processing")
 
+        # Normalizza l'emozione e usa quella predefinita se non disponibile
+        emotion = emotion.lower() if emotion else "neutral"
+        if emotion not in emotion_to_params:
+            logger.warning(f"Emozione '{emotion}' non supportata, uso 'neutral'")
+            emotion = "neutral"
+
         # Configura i parametri in base all'emozione
-        emotion_params = emotion_to_params.get(emotion, emotion_to_params["neutral"])
+        emotion_params = emotion_to_params.get(emotion)
 
         params_infer_code = ChatTTS.Chat.InferCodeParams(
             temperature=emotion_params.get("temperature", 0.3),
@@ -148,19 +154,25 @@ async def generate_audio(text: str, audio_id: str, emotion: str = "neutral", spe
             speaker_cache[speaker_id] = new_speaker
             params_infer_code.spk_emb = new_speaker
 
-        # Configura il prompt in base all'emozione
+        # Inizializza params_refine_text solo se c'è un prompt
         params_refine_text = None
-        if "prompt" in emotion_params:
+        if emotion_params.get("prompt"):
             params_refine_text = ChatTTS.Chat.RefineTextParams(
                 prompt=emotion_params["prompt"]
             )
 
-        # Genera l'audio
-        wavs = chat_tts.infer(
-            [text],
-            params_refine_text=params_refine_text,
-            params_infer_code=params_infer_code
-        )
+        # Genera l'audio con params_refine_text solo se non è None
+        if params_refine_text:
+            wavs = chat_tts.infer(
+                [text],
+                params_refine_text=params_refine_text,
+                params_infer_code=params_infer_code
+            )
+        else:
+            wavs = chat_tts.infer(
+                [text],
+                params_infer_code=params_infer_code
+            )
 
         # Salva il file audio
         audio_path = os.path.join(AUDIO_DIR, f"{audio_id}.wav")
