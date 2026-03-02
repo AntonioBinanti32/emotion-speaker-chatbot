@@ -2,6 +2,21 @@ Ecco come aggiungere il passaggio per l'attivazione del plugin Emotional Agent n
 
 # Emotive-chatbot
 
+Sistema conversazionale multimodale basato su AI con riconoscimento emotivo e ambientale.
+emotion-speaker-chatbot
+- Architettura a Microservizi (Python/Docker):
+   Progettazione e sviluppo di un'architettura distribuita e scalabile interamente in Python (FastAPI). Il sistema è strutturato in 8 microservizi indipendenti, containerizzati con Docker Compose e orchestrati tramite un API Gateway (NGINX) per la gestione delle richieste REST asincrone. 
+- Integrazione LLM e Framework Conversazionale: 
+   Implementazione del core conversazionale sfruttando LLaMA 3.2B (tramite Ollama) e il framework Cheshire Cat. Sviluppo di plugin custom in Python per iniettare dinamicamente nel prompt le informazioni sul contesto emotivo e ambientale, generando risposte altamente empatiche. 
+- Sviluppo Modelli di Deep Learning (CNN): 
+   Addestramento from scratch di una Rete Neurale Convoluzionale (CNN) personalizzata in Python per l'Emotion Recognition. Il modello elabora spettrogrammi Mel estratti dall'audio (dataset CREMA-D) per classificare le emozioni vocali dell'utente. 
+- Speech-to-Text & Text-to-Speech: 
+   Integrazione di modelli open-source di ultima generazione in microservizi dedicati: Whisper (OpenAI) per la trascrizione vocale robusta e ChatTTS per la sintesi vocale dinamica, capace di adattare parametri prosodici (tono, ritmo) in base all'emozione rilevata. 
+- Classificazione Ambientale: 
+   Integrazione del modello preaddestrato YAMNet per l'analisi acustica del contesto ambientale dell'utente (es. stanza chiusa, strada), arricchendo ulteriormente il contesto fornito all'LLM. 
+- Full-Stack Development: 
+   Realizzazione di un'interfaccia frontend responsiva in HTML5, CSS3 e JavaScript Vanilla, integrata con FastAPI e Jinja2, capace di gestire l'acquisizione audio asincrona e riprodurre dinamicamente testo e voce generati dall'AI.
+
 # Guida alla Configurazione di Cheshire Cat Core
 
 ## Prima Configurazione
