@@ -1,5 +1,3 @@
-Ecco come aggiungere il passaggio per l'attivazione del plugin Emotional Agent nel README.md:
-
 # Emotive-chatbot
 
 Sistema conversazionale multimodale basato su AI con riconoscimento emotivo e ambientale.
